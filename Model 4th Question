@@ -1,0 +1,43 @@
+import csv
+from collections import Counter, defaultdict
+
+# Load data
+with open("scholarship.csv") as f:
+    data=list(csv.reader(f))[1:]
+
+# Separate features & labels
+X=[row[:-1] for row in data]
+Y=[row[-1] for row in data]
+
+# Prior probabilities
+label_counts=Counter(Y)
+total=len(Y)
+priors={label:count/total for label,count in label_counts.items()}
+
+# Likelihoods
+likelihood=defaultdict(lambda:defaultdict(lambda:defaultdict(int)))
+
+for x,y in zip(X,Y):
+    for i,value in enumerate(x):
+        likelihood[y][i][value]+=1
+
+# Convert to probabilities
+for label in likelihood:
+    for i in likelihood[label]:
+        total_label=label_counts[label]
+        for value in likelihood[label][i]:
+            likelihood[label][i][value]/=total_label
+
+# Prediction function
+def predict(sample):
+    probs={}
+    for label in priors:
+        prob=priors[label]
+        for i,value in enumerate(sample):
+            prob*=likelihood[label][i].get(value,1e-6)
+        probs[label]=prob
+    return max(probs,key=probs.get)
+
+# Test
+test=["High","Yes","Regular"]
+print("Prediction for",test,":",predict(test))
